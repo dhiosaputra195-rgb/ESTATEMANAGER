@@ -30,6 +30,7 @@ Tidak butuh instalasi apa pun — cukup buka `index.html` di browser.
 - **Lampiran dokumen**: unggah file (maks 5 MB per file) yang menempel pada pekerjaan.
 - **Backup / Impor**: unduh daftar kegiatan & pengguna (JSON), lalu impor kembali kapan saja.
 - Mode **terang/gelap** otomatis, tampilan responsif HP & desktop.
+- Tampilan **skeuomorphism** (tombol & panel timbul/emboss, teks bertekstur, sudut membulat).
 - Export laporan ke **PDF** (dengan logo & tanda tangan waktu cetak).
 
 ## Penyimpanan data
