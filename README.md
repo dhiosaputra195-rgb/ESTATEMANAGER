@@ -18,7 +18,7 @@ Tidak butuh instalasi apa pun — cukup buka `index.html` di browser.
 | **Dokumentasi** | Foto & lampiran dokumen (PDF/Word/dll) menempel pada pekerjaan |
 | **Laporan Detail** | Tabel: No, Hari/Tanggal, Divisi, Aktivitas, Status, Vendor, PIC, Biaya, Keterangan + unduh PDF |
 | **Laporan Summary** | Rekap per bulan: jumlah selesai / sedang / belum + total biaya + unduh PDF |
-| **Pengguna** (admin) | Kelola akun Admin & Petugas |
+| **Pengguna** (admin) | Kelola akun admin |
 | **Data** (admin) | Backup & restore seluruh data (JSON) + statistik penyimpanan |
 
 ### Detail tambahan
@@ -38,32 +38,42 @@ Semua data disimpan terpusat di **Supabase**:
 
 | Data | Tempat |
 |---|---|
-| Akun pengguna (admin/petugas) | tabel `public.users` (kata sandi di-hash bcrypt, hanya lewat fungsi RPC) |
+| Akun pengguna (admin) | tabel `public.users` (kata sandi di-hash bcrypt, hanya lewat fungsi RPC) |
 | Pekerjaan / kegiatan | tabel `public.activities` |
 | Foto dokumentasi | tabel `public.photos` + **Supabase Storage** (`estate/foto/...`) |
 | Lampiran dokumen | tabel `public.docs` + **Supabase Storage** (`estate/lampiran/...`) |
 
-Karena tersimpan di server, data bisa dibuka dari perangkat mana pun dengan akun yang sama.
+Karena tersimpan di server, data bisa dibuka dari perangkat mana pun.
+
+## Siapa yang bisa apa
+
+| | Lihat data | Ubah data |
+|---|---|---|
+| **Pengunjung** (buka link, tanpa login) | ✅ | ❌ |
+| **Admin** (login) | ✅ | ✅ |
+
+Proteksi "tidak bisa ubah" dijalankan **di database** (Row Level Security + token sesi),
+bukan hanya menyembunyikan tombol. Jadi walau seseorang membuka source code web,
+tetap tidak bisa mengubah data tanpa login admin.
 
 ## Setup Supabase
 
 1. Buat project di https://supabase.com (gratis).
-2. Buka **SQL Editor → New query**, tempel isi `supabase-schema.sql`, lalu **Run**.
-   Ini membuat tabel, fungsi login, dan bucket Storage `estate`.
-3. Buka **Project Settings → API**, salin:
-   - **Project URL** → `SB_URL`
-   - **anon public** key → `SB_KEY`
-4. Buka `index.html`, cari dua baris di bagian atas script dan isi nilainya:
+2. Buka **SQL Editor → New query**:
+   - **Project baru:** tempel isi `supabase-schema.sql`, Run. Lalu tempel isi `supabase-v2-publik-admin.sql`, Run.
+   - **Database yang sudah jalan (upgrade ke mode publik/admin):** cukup tempel isi `supabase-v2-publik-admin.sql`, Run.
+3. Buka **Project Settings → API**, salin **Project URL** dan **publishable key** (atau **anon public**).
+4. Buka `index.html`, isi dua baris di bagian atas script:
 
    ```js
    const SB_URL = 'https://xxxx.supabase.co';
-   const SB_KEY = 'eyJhbGciOi...';
+   const SB_KEY = 'sb_publishable_...';
    ```
-5. Simpan, buka `index.html` di browser. Saat pertama kali, buat **akun admin**.
 
-> **Catatan keamanan:** aplikasi ini memakai *anon key* + akses terbuka (RLS `using(true)`) untuk
-> kesederhanaan. Cocok untuk pemakaian internal. Untuk keamanan lebih ketat, gunakan Supabase Auth
-> dan perketat policy RLS.
+5. Simpan, buka `index.html` di browser. Klik **Masuk** di kanan atas untuk membuat **akun admin** pertama.
+
+> **Catatan keamanan:** aplikasi memakai *publishable key* (aman untuk browser) + RLS.
+> **Jangan** menaruh `sb_secret_...` (service role) di file ini.
 
 ## Backup
 
@@ -77,7 +87,8 @@ HTML + CSS + JavaScript murni (tanpa build). Data & login lewat **Supabase** (`@
 ## Struktur
 
 ```
-index.html            # seluruh aplikasi (UI, logika, koneksi Supabase)
-supabase-schema.sql   # skema database + storage + fungsi login (jalankan sekali)
-README.md             # dokumen ini
+index.html                    # seluruh aplikasi (UI, logika, koneksi Supabase)
+supabase-schema.sql           # skema dasar: tabel + storage + fungsi (jalankan sekali, project baru)
+supabase-v2-publik-admin.sql  # upgrade: mode "publik lihat, admin ubah" (RLS + sesi token)
+README.md                     # dokumen ini
 ```
