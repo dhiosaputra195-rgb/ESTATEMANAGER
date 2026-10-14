@@ -4,7 +4,8 @@
 -- =====================================================================
 
 -- 1. Ekstensi untuk hashing kata sandi
-create extension if not exists pgcrypto;
+--    Di Supabase, pgcrypto dipasang di schema "extensions".
+create extension if not exists pgcrypto with schema extensions;
 
 -- =====================================================================
 -- 2. TABEL
@@ -93,7 +94,7 @@ create policy docs_all on public.docs
 -- Login
 create or replace function public.app_login(p_username text, p_password text)
 returns table (id uuid, username text, name text, role text)
-language sql security definer set search_path = public as $$
+language sql security definer set search_path = public, extensions as $$
   select u.id, u.username, u.name, u.role
   from public.users u
   where u.username = lower(trim(p_username))
@@ -103,14 +104,14 @@ $$;
 
 -- Jumlah pengguna (untuk deteksi pertama kali)
 create or replace function public.app_count_users()
-returns integer language sql security definer set search_path = public as $$
+returns integer language sql security definer set search_path = public, extensions as $$
   select count(*)::int from public.users;
 $$;
 
 -- Daftar pengguna (tanpa hash)
 create or replace function public.app_list_users()
 returns table (id uuid, username text, name text, role text, created_at timestamptz)
-language sql security definer set search_path = public as $$
+language sql security definer set search_path = public, extensions as $$
   select u.id, u.username, u.name, u.role, u.created_at
   from public.users u order by u.created_at;
 $$;
@@ -118,7 +119,7 @@ $$;
 -- Buat pengguna
 create or replace function public.app_create_user(p_name text, p_username text, p_password text, p_role text)
 returns table (id uuid, username text, name text, role text)
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare v_user text := lower(trim(p_username));
 begin
   if v_user = '' or coalesce(trim(p_name),'') = '' then
@@ -127,7 +128,7 @@ begin
   if length(coalesce(p_password,'')) < 6 then
     raise exception 'kata sandi minimal 6 karakter';
   end if;
-  if exists (select 1 from public.users where username = v_user) then
+  if exists (select 1 from public.users u where u.username = v_user) then
     raise exception 'username sudah dipakai';
   end if;
   return query
@@ -139,7 +140,7 @@ end $$;
 
 -- Ganti kata sandi
 create or replace function public.app_set_password(p_username text, p_password text)
-returns void language plpgsql security definer set search_path = public as $$
+returns void language plpgsql security definer set search_path = public, extensions as $$
 begin
   if length(coalesce(p_password,'')) < 6 then
     raise exception 'kata sandi minimal 6 karakter';
@@ -150,7 +151,7 @@ end $$;
 
 -- Hapus pengguna
 create or replace function public.app_delete_user(p_username text)
-returns void language sql security definer set search_path = public as $$
+returns void language sql security definer set search_path = public, extensions as $$
   delete from public.users where username = lower(trim(p_username));
 $$;
 
