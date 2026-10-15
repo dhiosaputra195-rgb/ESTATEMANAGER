@@ -175,8 +175,8 @@ const tag=s=>`<span class="tag ${s}">${ST[s][0]}</span>`;
 const om=h=>{$('mb').innerHTML=h;$('mw').classList.add('show')},cm=()=>$('mw').classList.remove('show'),go=t=>{S.tab=t;S.anim=1;draw();scrollTo(0,0)};
 
 /* ---------- view: Perencanaan ---------- */
-function vPlan(){const cnt=i=>inYr().filter(a=>D(a.tgl).getMonth()===i).length,l=sorted(inYr().filter(a=>mq(a)&&D(a.tgl).getMonth()===S.mo&&(S.dv==='all'||a.div===S.dv))),gs=[...DIV,''].map(d=>[d,l.filter(a=>a.div===d)]).filter(g=>g[1].length),tot=l.reduce((s,a)=>s+(+a.byr||0),0);
- return `<h2>Perencanaan</h2>${yrBar()}<div class="chips">${BLN.map((b,i)=>`<button class="chip ${i===S.mo?'on':''}" onclick="S.mo=${i};draw()">${b}${cnt(i)?' ('+cnt(i)+')':''}</button>`).join('')}</div>
+function vPlan(){const cnt=i=>inYr().filter(a=>D(a.tgl).getMonth()===i).length,l=planL(),gs=[...DIV,''].map(d=>[d,l.filter(a=>a.div===d)]).filter(g=>g[1].length),tot=l.reduce((s,a)=>s+(+a.byr||0),0);
+ return `<h2>Perencanaan</h2><div class="row" style="justify-content:space-between">${yrBar()}<button class="btn" onclick="pdf('plan')">⬇ Unduh PDF</button></div><div class="chips">${BLN.map((b,i)=>`<button class="chip ${i===S.mo?'on':''}" onclick="S.mo=${i};draw()">${b}${cnt(i)?' ('+cnt(i)+')':''}</button>`).join('')}</div>
 <div class="chips">${['all',...DIV].map(d=>`<button class="chip ${S.dv===d?'on':''}" onclick="S.dv='${d}';draw()">${d==='all'?'Semua divisi':d}</button>`).join('')}</div>
 ${searchBox()}${l.length?`<div class="mut" style="margin:10px 2px 0">${l.length} kegiatan · total ${rp(tot)}</div>`:''}
 ${gs.map(([d,x])=>`<div class="sec"><h3>${E(d||'Belum ditentukan')}</h3><span class="mut">${x.length} kegiatan · ${rp(x.reduce((s,a)=>s+(+a.byr||0),0))}</span></div><div class="card" style="padding:4px 14px;margin-top:6px">${x.map(a=>row(a,1)).join('')}</div>`).join('')||'<div class="card"><div class="empty">Belum ada rencana kegiatan untuk pilihan ini.</div></div>'}`}
@@ -244,28 +244,32 @@ function restore(f){if(!needAdmin())return;if(!f)return;const r=new FileReader()
 
 /* ---------- CRUD kegiatan ---------- */
 const grp=l=>[...DIV,''].map(d=>[d,l.filter(a=>d===''?!DIV.includes(a.div):a.div===d)]).filter(g=>g[1].length);
+const planL=()=>sorted(inYr().filter(a=>mq(a)&&D(a.tgl).getMonth()===S.mo&&(S.dv==='all'||a.div===S.dv)));
 const detL=()=>sorted(inYr().filter(a=>mq(a)&&(S.fm==='all'||D(a.tgl).getMonth()==S.fm)&&(S.fs==='all'||a.st===S.fs)&&(S.fd==='all'||a.div===S.fd)));
 const sumGroups=()=>{const by=l=>({done:l.filter(a=>a.st==='done').length,progress:l.filter(a=>a.st==='progress').length,todo:l.filter(a=>a.st==='todo').length,by:l.reduce((s,a)=>s+(+a.byr||0),0)});
  return [...DIV,''].map(d=>{const dl=inYr().filter(a=>mq(a)&&(d===''?!DIV.includes(a.div):a.div===d)&&(S.sd==='all'||a.div===S.sd));if(!dl.length)return null;
   const months=BLN.map((b,i)=>({label:b+' '+S.yr,...by(dl.filter(a=>D(a.tgl).getMonth()===i))}));
   return {div:d,months,...by(dl)}}).filter(Boolean)};
 function pdf(k){const J=window.jspdf;if(!J||!J.jsPDF)return toast('Pustaka PDF belum termuat. Periksa koneksi internet lalu coba lagi.');
- const doc=new J.jsPDF({unit:'mm',format:'a4'}),W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),det=k==='det';
+ const doc=new J.jsPDF({unit:'mm',format:'a4'}),W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),det=k==='det',plan=k==='plan';
  try{doc.addImage(LG_O,'PNG',14,10,36,18.3)}catch(e){}
- doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(18,39,28);doc.text(det?'Laporan Detail Kegiatan':'Laporan Summary Kegiatan',W-14,16,{align:'right'});
+ doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(18,39,28);doc.text(plan?'Laporan Perencanaan Kegiatan':det?'Laporan Detail Kegiatan':'Laporan Summary Kegiatan',W-14,16,{align:'right'});
  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(90);
  doc.text('Estate Management Golden Park',W-14,22,{align:'right'});
- doc.text(`Tahun ${S.yr} | `+(det?`${S.fm==='all'?'Semua bulan':BLN[S.fm]} | ${S.fd==='all'?'Semua divisi':S.fd} | ${S.fs==='all'?'Semua status':ST[S.fs][0]}`:(S.sd==='all'?'Semua divisi':S.sd)),W-14,27,{align:'right'});
+ doc.text(`Tahun ${S.yr} | `+(plan?`${BLN[S.mo]} | ${S.dv==='all'?'Semua divisi':S.dv}`:det?`${S.fm==='all'?'Semua bulan':BLN[S.fm]} | ${S.fd==='all'?'Semua divisi':S.fd} | ${S.fs==='all'?'Semua status':ST[S.fs][0]}`:(S.sd==='all'?'Semua divisi':S.sd)),W-14,27,{align:'right'});
  doc.setDrawColor(193,162,39);doc.setLineWidth(.8);doc.line(14,32,W-14,32);
  const o={startY:37,theme:'grid',styles:{fontSize:8,cellPadding:2,lineColor:[220,230,222],textColor:[18,39,28]},headStyles:{fillColor:[20,83,45],textColor:255,halign:'center'},alternateRowStyles:{fillColor:[243,247,244]},margin:{left:14,right:14,bottom:16}};
  if(det){let n=0;const body=[];grp(detL()).forEach(([d,x])=>{body.push([{content:`${d||'Belum ditentukan'} (${x.length} kegiatan)`,colSpan:9,styles:{fillColor:[228,239,230],fontStyle:'bold',halign:'left'}}]);x.forEach(a=>body.push([++n,fl(a.tgl),a.div||'-',a.akt,ST[a.st][0],a.ven||'-',a.pic||'-',a.byr?rp(a.byr):'-',a.ket||'-']))});
  doc.autoTable({...o,head:[['No','Hari/Tanggal','Divisi','Aktivitas','Status','Vendor','PIC','Biaya','Keterangan']],body,columnStyles:{0:{halign:'center',cellWidth:8},1:{cellWidth:24},2:{cellWidth:18},4:{cellWidth:16,halign:'center'},5:{cellWidth:19},6:{cellWidth:17},7:{cellWidth:19,halign:'right'}}})}
+ else if(plan){let n=0;const body=[];const L=planL();grp(L).forEach(([d,x])=>{body.push([{content:`${d||'Belum ditentukan'} (${x.length} kegiatan)`,colSpan:9,styles:{fillColor:[228,239,230],fontStyle:'bold',halign:'left'}}]);x.forEach(a=>body.push([++n,fl(a.tgl),a.div||'-',a.akt,ST[a.st][0],a.ven||'-',a.pic||'-',a.byr?rp(a.byr):'-',a.ket||'-']));body.push([{content:'Subtotal '+(d||'Belum ditentukan'),colSpan:7,styles:{fontStyle:'bold'}},{content:rp(x.reduce((s,a)=>s+(+a.byr||0),0)),styles:{fontStyle:'bold',halign:'right'}},{content:''}])});
+  const tot=L.reduce((s,a)=>s+(+a.byr||0),0);
+  doc.autoTable({...o,head:[['No','Hari/Tanggal','Divisi','Aktivitas','Status','Vendor','PIC','Biaya','Keterangan']],body,foot:[[{content:'Total '+L.length+' kegiatan',colSpan:7},rp(tot),'']],footStyles:{fillColor:[228,239,230],textColor:[18,39,28],fontStyle:'bold'},columnStyles:{0:{halign:'center',cellWidth:8},1:{cellWidth:24},2:{cellWidth:18},4:{cellWidth:16,halign:'center'},5:{cellWidth:19},6:{cellWidth:17},7:{cellWidth:19,halign:'right'}}})}
  else{const g=sumGroups(),gd=g.reduce((s,x)=>s+x.done,0),gp=g.reduce((s,x)=>s+x.progress,0),gt=g.reduce((s,x)=>s+x.todo,0),gby=g.reduce((s,x)=>s+x.by,0),body=[];
   g.forEach(x=>{x.months.forEach(m=>body.push([x.div||'Belum ditentukan',m.label,m.done,m.progress,m.todo,rp(m.by)]));body.push([{content:'Subtotal '+(x.div||'Belum ditentukan'),colSpan:2,styles:{fontStyle:'bold'}},{content:x.done,styles:{fontStyle:'bold'}},{content:x.progress,styles:{fontStyle:'bold'}},{content:x.todo,styles:{fontStyle:'bold'}},{content:rp(x.by),styles:{fontStyle:'bold'}}])});
   doc.autoTable({...o,head:[['Divisi','Bulan, tahun','Total aktivitas selesai','Total aktivitas sedang dikerjakan','Total aktivitas belum dikerjakan','Total biaya']],body,foot:[[{content:'Total '+S.yr,colSpan:2},gd,gp,gt,rp(gby)]],footStyles:{fillColor:[228,239,230],textColor:[18,39,28],fontStyle:'bold'},columnStyles:{1:{halign:'left'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center'},5:{halign:'right'}}})}
  const n=doc.internal.getNumberOfPages();
  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(120);doc.text(`Dicetak ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} oleh ${ME?ME.name:'Publik'}`,14,H-8);doc.text(`Halaman ${i} dari ${n}`,W-14,H-8,{align:'right'})}
- doc.save(`Laporan-${det?'Detail':'Summary'}-${S.yr}-GoldenPark.pdf`);toast('PDF diunduh')}
+ doc.save(`Laporan-${plan?'Perencanaan':det?'Detail':'Summary'}-${S.yr}-GoldenPark.pdf`);toast('PDF diunduh')}
 
 async function genRutin(a){if(!a||!a.rutin||!a.sampai)return 0;const b=D(a.tgl),end=new Date(a.sampai.slice(0,7)+'-01T00:00:00');const rows=[];
  for(let d=new Date(b.getFullYear(),b.getMonth()+1,1);d<=end;d=new Date(d.getFullYear(),d.getMonth()+1,1)){const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate(),tgl=fiso(d.getFullYear(),d.getMonth(),Math.min(b.getDate(),last));if(A.some(x=>(x.induk||x.id)===a.id&&String(x.tgl).slice(0,7)===tgl.slice(0,7)))continue;rows.push({tgl,akt:a.akt,ket:a.ket,st:'todo',div:a.div,byr:a.byr,ven:a.ven,pic:a.pic,rutin:true,induk:a.id,oleh:ME?.name||''})}
